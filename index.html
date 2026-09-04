@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=no">
+<title>Flappy Frost Seahorse</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#020a16;font-family:Arial,Helvetica,sans-serif}
+body{display:flex;align-items:center;justify-content:center;color:white}
+.game-wrapper{width:100%;height:100%;max-width:900px;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 25%,rgba(0,210,255,.25),transparent 35%),linear-gradient(180deg,#061d3a 0%,#06376b 50%,#05234a 100%)}
+canvas{width:100%;height:100%;display:block}
+.hud{position:absolute;left:18px;right:18px;top:15px;height:60px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.brand{min-width:190px}.title{color:#5cecff;font-size:18px;font-weight:900;letter-spacing:1px;text-shadow:0 0 5px #00eaff,0 0 15px #00eaff}.subtitle{font-size:9px;color:#b9eaff;letter-spacing:1px;margin-top:5px}
+.meter{width:190px;height:8px;border:1px solid #6defff;border-radius:10px;margin-top:6px;overflow:hidden;background:rgba(0,0,0,.35)}.meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#00aaff,#00ffff,#fff);box-shadow:0 0 10px #00eaff;transition:width .15s}.status{font-size:8px;color:#fff;margin-top:3px}
+.boxes{display:flex;gap:10px}.stat-box{width:64px;height:48px;border:1px solid rgba(0,220,255,.5);border-radius:6px;background:rgba(0,12,30,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 15px rgba(0,200,255,.08)}.stat-label{font-size:7px;color:#68eaff;text-transform:uppercase}.stat-value{font-size:17px;font-weight:bold;margin-top:2px}
+.menu{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,8,20,.35)}.panel{width:min(90%,430px);padding:35px 25px;border:1px solid #32e9ff;border-radius:18px;text-align:center;background:linear-gradient(180deg,rgba(2,36,70,.94),rgba(1,15,35,.96));box-shadow:0 0 30px rgba(0,218,255,.25),inset 0 0 30px rgba(0,150,255,.08)}
+.logo{font-family:Georgia,serif;font-size:43px;line-height:1;text-shadow:0 0 5px #fff,0 0 20px #00eaff}.frost{margin-top:8px;font-size:24px;letter-spacing:5px;color:#d8f9ff;text-shadow:0 0 15px #00dfff}.seahorse-icon{font-size:65px;margin:20px 0;filter:drop-shadow(0 0 10px #00efff);animation:floatIcon 2s ease-in-out infinite}
+@keyframes floatIcon{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-10px) rotate(4deg)}}
+.description{color:#a8dff1;font-size:13px;line-height:1.6;margin-bottom:22px}.play-button{width:100%;height:52px;border:1px solid #8cffff;border-radius:9px;color:#001521;font-size:16px;font-weight:900;background:linear-gradient(90deg,#00cfff,#8effff,#00cfff);box-shadow:0 0 15px rgba(0,230,255,.6);cursor:pointer}.play-button:active{transform:scale(.97)}.controls{margin-top:15px;color:#80b8cc;font-size:10px}
+.game-over{display:none;position:absolute;inset:0;z-index:11;align-items:center;justify-content:center;background:rgba(0,7,18,.55)}.game-over.active{display:flex}.result{width:min(90%,380px);text-align:center;padding:30px;border:1px solid #3ceeff;border-radius:15px;background:rgba(2,20,40,.95);box-shadow:0 0 35px rgba(0,225,255,.3)}.result h2{font-size:30px;color:#bafaff;text-shadow:0 0 15px #00eaff}.result-score{font-size:48px;font-weight:900;margin:12px}.result-high{color:#74dfff;font-size:13px;margin-bottom:20px}.restart{width:100%;height:48px;border:0;border-radius:8px;background:#04cfee;color:#00131d;font-weight:900;cursor:pointer}
+.combo-text{position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);font-weight:900;font-size:28px;color:white;text-shadow:0 0 5px #00eaff,0 0 20px #00cfff;opacity:0;pointer-events:none}.combo-text.show{animation:comboPop .55s ease-out}
+@keyframes comboPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}100%{opacity:0;transform:translate(-50%,-80%) scale(1)}}
+@media(max-width:600px){.hud{left:10px;right:10px;top:10px}.brand{min-width:140px}.title{font-size:14px}.meter{width:130px}.stat-box{width:55px;height:43px}.stat-value{font-size:14px}.logo{font-size:35px}.frost{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="game-wrapper">
+<canvas id="gameCanvas"></canvas>
+<div class="hud">
+<div class="brand">
+<div class="title">❄ FROST SEAHORSE ❄</div>
+<div class="subtitle">DEEP FREEZE MODE</div>
+<div class="meter"><div class="meter-fill" id="overdriveMeter"></div></div>
+<div class="status" id="statusText">READY</div>
+</div>
+<div class="boxes">
+<div class="stat-box"><div class="stat-label">SCORE</div><div class="stat-value" id="scoreText">0</div></div>
+<div class="stat-box"><div class="stat-label">COMBO</div><div class="stat-value" id="comboText">1x</div></div>
+</div>
+</div>
+<div class="combo-text" id="comboPopup">FROST COMBO!</div>
+<div class="menu" id="startMenu">
+<div class="panel">
+<div class="logo">Flappy</div>
+<div class="frost">Frost Seahorse ❄</div>
+<div class="seahorse-icon">🐴</div>
+<div class="description">Terbang melewati pipa es, kumpulkan skor, bangun combo, dan aktifkan mode Overdrive!</div>
+<button class="play-button" id="playButton">START GAME</button>
+<div class="controls">TAP / CLICK / SPACE untuk membuat Seahorse terbang</div>
+</div>
+</div>
+<div class="game-over" id="gameOver">
+<div class="result">
+<h2>FROZEN!</h2>
+<div class="result-score" id="finalScore">0</div>
+<div class="result-high" id="highScoreText">HIGH SCORE: 0</div>
+<button class="restart" id="restartButton">PLAY AGAIN</button>
+</div>
+</div>
+</div>
+<script>
+const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d"),wrapper=document.querySelector(".game-wrapper");
+const scoreText=document.getElementById("scoreText"),comboText=document.getElementById("comboText"),meter=document.getElementById("overdriveMeter"),statusText=document.getElementById("statusText");
+const startMenu=document.getElementById("startMenu"),gameOver=document.getElementById("gameOver"),finalScore=document.getElementById("finalScore"),highScoreText=document.getElementById("highScoreText"),comboPopup=document.getElementById("comboPopup");
+const playButton=document.getElementById("playButton"),restartButton=document.getElementById("restartButton");
+let W=0,H=0;
+function resizeCanvas(){const r=wrapper.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=W*d;canvas.height=H*d;canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(d,0,0,d,0,0)}
+window.addEventListener("resize",resizeCanvas);resizeCanvas();
+let gameRunning=false,gameStarted=false,score=0,combo=0,highScore=Number(localStorage.getItem("frostSeahorseHighScore"))||0,overdrive=0,overdriveActive=false,gameSpeed=3.1,pipeTimer=0,lastTime=0,shake=0;
+const player={x:0,y:0,radius:20,velocity:0,gravity:.42,jump:-7.2,rotation:0,wing:0};
+const pipes=[],particles=[],snowflakes=[],mountains=[],PIPE_WIDTH=54,MIN_GAP=145,MAX_GAP=190;
+function createSnow(){snowflakes.length=0;for(let i=0;i<90;i++)snowflakes.push({x:Math.random()*W,y:Math.random()*H,size:Math.random()*3+1,speed:Math.random()*.8+.2,drift:Math.random()*.5-.25,alpha:Math.random()*.6+.2})}
+function createMountains(){mountains.length=0;for(let x=-100;x<W+200;x+=130)mountains.push({x,height:100+Math.random()*130,width:150+Math.random()*80})}
+createSnow();createMountains();
+function resetPlayer(){player.x=W*.24;player.y=H*.48;player.velocity=0;player.rotation=0;player.wing=0}
+function resetGame(){score=0;combo=0;overdrive=0;overdriveActive=false;gameSpeed=3.1;pipeTimer=0;pipes.length=0;particles.length=0;resetPlayer();updateUI()}
+function startGame(){resetGame();startMenu.style.display="none";gameOver.classList.remove("active");gameRunning=true;gameStarted=true;statusText.textContent="FLY!";flap();lastTime=performance.now()}
+function endGame(){if(!gameRunning)return;gameRunning=false;statusText.textContent="GAME OVER";if(score>highScore){highScore=score;localStorage.setItem("frostSeahorseHighScore",highScore)}finalScore.textContent=score;highScoreText.textContent="HIGH SCORE: "+highScore;gameOver.classList.add("active");createExplosion(player.x,player.y,30);shake=15}
+function flap(){if(!gameRunning)return;player.velocity=player.jump;player.wing=1;createFlapParticles()}
+canvas.addEventListener("pointerdown",e=>{e.preventDefault();if(!gameStarted)startGame();else if(gameRunning)flap()});
+document.addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="ArrowUp"){e.preventDefault();if(!gameStarted)startGame();else if(gameRunning)flap()}});
+playButton.addEventListener("click",startGame);restartButton.addEventListener("click",startGame);
+function createPipe(){const gap=MIN_GAP+Math.random()*(MAX_GAP-MIN_GAP),topMin=100,topMax=H-gap-130,top=topMin+Math.random()*Math.max(40,topMax-topMin);pipes.push({x:W+40,top,gap,passed:false,golden:Math.random()<.07,smashed:false})}
+function updatePlayer(dt){player.velocity+=player.gravity*dt;player.y+=player.velocity*dt;player.rotation=Math.max(-.5,Math.min(1,player.velocity*.07));player.wing*=.9;if(player.y-player.radius<0){player.y=player.radius;player.velocity=0}if(player.y+player.radius>H)endGame()}
+function updatePipes(dt){pipeTimer-=dt;if(pipeTimer<=0){createPipe();pipeTimer=105+Math.random()*25}const speed=gameSpeed*(overdriveActive?1.35:1);for(let i=pipes.length-1;i>=0;i--){const p=pipes[i];p.x-=speed*dt;if(!p.passed&&p.x+PIPE_WIDTH<player.x){p.passed=true;addScore(p.golden?5:1)}if(p.x+PIPE_WIDTH<-50)pipes.splice(i,1)}}
+function addScore(amount){score+=amount;combo++;overdrive=Math.min(100,overdrive+8);if(combo>=3){comboPopup.textContent="FROST "+combo+"x COMBO!";comboPopup.classList.remove("show");void comboPopup.offsetWidth;comboPopup.classList.add("show")}if(overdrive>=100&&!overdriveActive)activateOverdrive();updateUI()}
+function activateOverdrive(){overdriveActive=true;statusText.textContent="❄ OVERDRIVE ❄";createBurst(player.x,player.y,40);setTimeout(()=>{overdriveActive=false;overdrive=0;statusText.textContent="FLY!";updateUI()},7000)}
+function updateUI(){scoreText.textContent=score;comboText.textContent=Math.max(1,combo)+"x";meter.style.width=overdrive+"%"}
+function checkCollision(){const px=player.x,py=player.y,r=player.radius-4;for(const p of pipes){if(p.smashed)continue;const left=p.x,right=p.x+PIPE_WIDTH;if(px+r>left&&px-r<right){const topBottom=p.top,bottomTop=p.top+p.gap;if(py-r<topBottom||py+r>bottomTop){if(overdriveActive)smashPipe(p);else endGame();return}}}}
+function smashPipe(p){p.smashed=true;score+=10;combo++;overdrive=Math.min(100,overdrive+15);createExplosion(p.x+PIPE_WIDTH/2,p.top,25);createExplosion(p.x+PIPE_WIDTH/2,p.top+p.gap,25);shake=8;updateUI()}
+function createFlapParticles(){for(let i=0;i<7;i++)particles.push({x:player.x-12,y:player.y+Math.random()*12-6,vx:-Math.random()*2,vy:Math.random()*2-1,life:1,size:Math.random()*3+1})}
+function createExplosion(x,y,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=Math.random()*4+1;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:Math.random()*5+2})}}
+function createBurst(x,y,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=Math.random()*7+2;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:Math.random()*5+2})}}
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.05*dt;p.life-=.025*dt;if(p.life<=0)particles.splice(i,1)}}
+function updateSnow(dt){for(const s of snowflakes){s.y+=s.speed*dt;s.x+=s.drift*dt;if(s.y>H+5){s.y=-5;s.x=Math.random()*W}if(s.x<-10)s.x=W;if(s.x>W+10)s.x=0}}
+function drawBackground(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#03152d");g.addColorStop(.55,"#06447b");g.addColorStop(1,"#031b3a");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);drawGlow();drawMountains();drawIceGround();drawSnow()}
+function drawGlow(){const g=ctx.createRadialGradient(W*.5,H*.35,20,W*.5,H*.35,H*.8);g.addColorStop(0,"rgba(0,220,255,.16)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+function drawMountains(){for(let i=0;i<mountains.length;i++){const m=mountains[i];ctx.beginPath();ctx.moveTo(m.x,H);ctx.lineTo(m.x+m.width/2,H-m.height);ctx.lineTo(m.x+m.width,H);ctx.closePath();ctx.fillStyle=i%2===0?"#073a79":"#084c91";ctx.fill()}}
+function drawIceGround(){ctx.fillStyle="#06264e";ctx.fillRect(0,H-35,W,35);for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,H-35);ctx.lineTo(x+20,H-55-Math.random()*15);ctx.lineTo(x+40,H-35);ctx.closePath();ctx.fillStyle="#0b5590";ctx.fill()}}
+function drawSnow(){for(const s of snowflakes){ctx.globalAlpha=s.alpha;ctx.beginPath();ctx.arc(s.x,s.y,s.size,0,Math.PI*2);ctx.fillStyle="#d8fbff";ctx.fill()}ctx.globalAlpha=1}
+function drawPipes(){for(const p of pipes){if(p.smashed)continue;drawPipe(p.x,0,PIPE_WIDTH,p.top,true,p.golden);drawPipe(p.x,p.top+p.gap,PIPE_WIDTH,H-(p.top+p.gap),false,p.golden)}}
+function drawPipe(x,y,width,height,top,golden){const g=ctx.createLinearGradient(x,0,x+width,0);if(golden){g.addColorStop(0,"#9c6b00");g.addColorStop(.45,"#fff06a");g.addColorStop(1,"#d59b00")}else{g.addColorStop(0,"#008fa9");g.addColorStop(.35,"#00f3ff");g.addColorStop(.55,"#b5ffff");g.addColorStop(1,"#0098ae")}ctx.save();ctx.shadowBlur=golden?25:18;ctx.shadowColor=golden?"#ffe100":"#00efff";ctx.fillStyle=g;ctx.fillRect(x+8,y,width-16,height);const ch=16;if(top)ctx.fillRect(x,y+height-ch,width,ch);else ctx.fillRect(x,y,width,ch);ctx.restore()}
+function drawPlayer(){
+  ctx.save();
+  ctx.translate(player.x,player.y);
+  ctx.rotate(player.rotation*.72);
+
+  // 3D-style frost seahorse: layered gradients, bevels, highlights and a stable silhouette.
+  const pulse=1+Math.sin(performance.now()*.006)*.012;
+  ctx.scale(pulse,pulse);
+  ctx.shadowBlur=overdriveActive?34:20;
+  ctx.shadowColor="#00eaff";
+
+  // Tail behind the body — thick and smooth so it stays visually stable.
+  const tail=ctx.createLinearGradient(-8,8,-30,45);
+  tail.addColorStop(0,"#bfffff");
+  tail.addColorStop(.45,"#36d9ed");
+  tail.addColorStop(1,"#075d8e");
+  ctx.strokeStyle=tail;
+  ctx.lineWidth=9;
+  ctx.lineCap="round";
+  ctx.beginPath();
+  ctx.moveTo(-3,13);
+  ctx.bezierCurveTo(-18,22,-13,31,-25,38);
+  ctx.bezierCurveTo(-34,44,-31,54,-21,50);
+  ctx.stroke();
+  ctx.lineWidth=3;
+  ctx.strokeStyle="rgba(255,255,255,.48)";
+  ctx.beginPath();
+  ctx.moveTo(-5,14);
+  ctx.bezierCurveTo(-18,24,-15,31,-25,38);
+  ctx.stroke();
+
+  // Rear fin.
+  const fin=ctx.createLinearGradient(-24,-4,-4,10);
+  fin.addColorStop(0,"#d9ffff");
+  fin.addColorStop(.5,"#43e5f3");
+  fin.addColorStop(1,"#08779f");
+  ctx.fillStyle=fin;
+  ctx.beginPath();
+  ctx.moveTo(-7,-7);
+  ctx.quadraticCurveTo(-29,-17,-27,-3);
+  ctx.quadraticCurveTo(-24,9,-6,8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.45)";
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+
+  // Main body with a strong 3D highlight on the upper-left.
+  const body=ctx.createRadialGradient(-7,-12,2,4,5,27);
+  body.addColorStop(0,"#ffffff");
+  body.addColorStop(.18,"#bdfcff");
+  body.addColorStop(.48,"#46ddea");
+  body.addColorStop(.78,"#1095b9");
+  body.addColorStop(1,"#034c78");
+  ctx.fillStyle=body;
+  ctx.beginPath();
+  ctx.ellipse(0,2,15,25,-.15,0,Math.PI*2);
+  ctx.fill();
+
+  // Body bevel / rim.
+  ctx.shadowBlur=0;
+  ctx.strokeStyle="rgba(220,255,255,.75)";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.ellipse(-1,1,15,25,-.15,0,Math.PI*2);
+  ctx.stroke();
+
+  // Belly depth.
+  const belly=ctx.createLinearGradient(2,-2,10,22);
+  belly.addColorStop(0,"rgba(255,255,255,.62)");
+  belly.addColorStop(.45,"rgba(160,250,255,.28)");
+  belly.addColorStop(1,"rgba(0,55,100,.38)");
+  ctx.fillStyle=belly;
+  ctx.beginPath();
+  ctx.ellipse(6,5,6.5,19,.12,0,Math.PI*2);
+  ctx.fill();
+
+  // Neck and head.
+  const neck=ctx.createLinearGradient(-5,-26,12,-10);
+  neck.addColorStop(0,"#e8ffff");
+  neck.addColorStop(.45,"#65edf4");
+  neck.addColorStop(1,"#087aa2");
+  ctx.fillStyle=neck;
+  ctx.beginPath();
+  ctx.ellipse(4,-17,11,15,-.2,0,Math.PI*2);
+  ctx.fill();
+
+  const head=ctx.createRadialGradient(3,-27,1,7,-22,14);
+  head.addColorStop(0,"#ffffff");
+  head.addColorStop(.3,"#b8fbff");
+  head.addColorStop(.7,"#35d4e7");
+  head.addColorStop(1,"#07547d");
+  ctx.fillStyle=head;
+  ctx.beginPath();
+  ctx.arc(8,-25,12,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="rgba(230,255,255,.75)";
+  ctx.lineWidth=1.8;
+  ctx.stroke();
+
+  // Snout.
+  const snout=ctx.createLinearGradient(11,-29,25,-18);
+  snout.addColorStop(0,"#d8ffff");
+  snout.addColorStop(.45,"#5ee8f1");
+  snout.addColorStop(1,"#08759a");
+  ctx.fillStyle=snout;
+  ctx.beginPath();
+  ctx.moveTo(14,-29);
+  ctx.quadraticCurveTo(27,-27,25,-22);
+  ctx.quadraticCurveTo(23,-18,13,-20);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eye socket, eye and catchlight.
+  ctx.fillStyle="rgba(0,54,83,.38)";
+  ctx.beginPath(); ctx.arc(11,-28,4.7,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#031724";
+  ctx.beginPath(); ctx.arc(11.8,-28.3,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#fff";
+  ctx.beginPath(); ctx.arc(12.8,-29.4,1.05,0,Math.PI*2); ctx.fill();
+
+  // Crown-like dorsal spines.
+  const spine=ctx.createLinearGradient(-4,-38,4,-24);
+  spine.addColorStop(0,"#ffffff");
+  spine.addColorStop(.4,"#7ef7ff");
+  spine.addColorStop(1,"#0b7ea5");
+  ctx.fillStyle=spine;
+  ctx.beginPath();
+  ctx.moveTo(1,-34); ctx.lineTo(-5,-43); ctx.lineTo(3,-39);
+  ctx.lineTo(1,-48); ctx.lineTo(8,-38); ctx.lineTo(8,-33);
+  ctx.closePath();
+  ctx.fill();
+
+  // Stable scale/belly ridges.
+  ctx.strokeStyle="rgba(255,255,255,.32)";
+  ctx.lineWidth=1.5;
+  for(let i=-6;i<=13;i+=6){
+    ctx.beginPath();
+    ctx.moveTo(-8,i);
+    ctx.quadraticCurveTo(0,i+3,8,i+1);
+    ctx.stroke();
+  }
+
+  // Tiny ice fins.
+  ctx.fillStyle="rgba(210,255,255,.9)";
+  ctx.beginPath(); ctx.moveTo(-7,15); ctx.lineTo(-16,21); ctx.lineTo(-6,20); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-7,9); ctx.lineTo(-17,12); ctx.lineTo(-7,14); ctx.closePath(); ctx.fill();
+
+  // Overdrive ring.
+  if(overdriveActive){
+    ctx.strokeStyle="rgba(255,255,255,.9)";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(0,0,32+Math.sin(performance.now()*.01)*2,0,Math.PI*2);
+    ctx.stroke();
+    ctx.strokeStyle="rgba(80,240,255,.55)";
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(0,0,38,0,Math.PI*1.55); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawParticles(){for(const p of particles){ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle="#a9ffff";ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
+function drawOverdrive(){if(!overdriveActive)return;ctx.save();ctx.globalAlpha=.12+Math.sin(performance.now()*.01)*.04;ctx.fillStyle="#00efff";ctx.fillRect(0,0,W,H);ctx.restore()}
+function update(dt){if(!gameRunning)return;updatePlayer(dt);updatePipes(dt);updateParticles(dt);updateSnow(dt);checkCollision();gameSpeed=Math.min(5.5,3.1+score*.025);if(shake>0){shake*=Math.pow(.85,dt);if(shake<.1)shake=0}}
+function render(){ctx.save();if(shake>0)ctx.translate(Math.random()*shake-shake/2,Math.random()*shake-shake/2);drawBackground();drawPipes();drawParticles();drawPlayer();drawOverdrive();ctx.restore()}
+function gameLoop(time){let dt=(time-lastTime)/16.666;dt=Math.min(dt,2);lastTime=time;update(dt);render();requestAnimationFrame(gameLoop)}
+resetPlayer();updateUI();requestAnimationFrame(time=>{lastTime=time;gameLoop(time)});
+document.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+document.addEventListener("keydown",e=>{if(e.key==="r"||e.key==="R"){if(!gameRunning)startGame()}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&gameRunning){gameRunning=false;statusText.textContent="PAUSED"}});
+window.addEventListener("focus",()=>{if(gameStarted&&!gameOver.classList.contains("active")){gameRunning=true;statusText.textContent="FLY!"}});
+</script>
+</body>
+</html>
